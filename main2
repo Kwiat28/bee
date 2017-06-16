@@ -1,0 +1,219 @@
+package com.example.floare.bee;
+
+import android.content.Intent;
+import android.graphics.Point;
+import android.os.Handler;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.view.Display;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.TextView;
+
+import java.util.Timer;
+import java.util.TimerTask;
+
+public class main extends AppCompatActivity {
+
+    private TextView scoreLabel;
+    private TextView startLabel;
+    private ImageView bee;
+    private ImageView flower;
+    private ImageView wasp;
+    private ImageView honey;
+
+    //Marime ecran
+
+    private int frameHeight;
+    private int beeSize;
+    private int screenWidth;
+    private int screenHeight;
+
+    //Pozitie
+    private int beeY;
+    private int flowerX;
+    private int flowerY;
+    private int honeyX;
+    private int honeyY;
+    private int waspX;
+    private int waspY;
+
+    //Scorul
+    private int score = 0;
+
+
+    //Initierea Clasei
+    private Handler handler = new Handler();
+    private Timer timer = new Timer();
+
+    //Verificarea pozitiei
+    private boolean action_flg = false;
+    private boolean start_flg = false;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        scoreLabel = (TextView) findViewById(R.id.scoreLabel);
+        startLabel = (TextView) findViewById(R.id.startLabel);
+        bee = (ImageView) findViewById(R.id.bee);
+        wasp = (ImageView) findViewById(R.id.wasp);
+        flower = (ImageView) findViewById(R.id.flower);
+        honey = (ImageView) findViewById(R.id.honey);
+
+        //Marimea ecranului
+        WindowManager wm = getWindowManager();
+        Display disp = wm.getDefaultDisplay();
+        Point size = new Point();
+        disp.getSize(size);
+
+        screenWidth = size.x;
+        screenHeight = size.y;
+        scoreLabel.setText("Score: 0");
+
+        //Muta afara de pe ecran
+        flower.setX(-80);
+        flower.setY(-80);
+        wasp.setX(-80);
+        wasp.setY(-80);
+        honey.setX(-80);
+        honey.setY(-80);
+
+
+}
+
+    public void changePos(){
+
+        hitCheck();
+        //Floare
+        flowerX -= 12;
+        if (flowerX < 0) {
+            flowerX = screenWidth + 20;
+            flowerY = (int) Math.floor(Math.random() * (frameHeight - flower.getHeight()));
+        }
+        flower.setX(flowerX);
+        flower.setY(flowerY);
+
+        //Viespe
+        waspX -= 16;
+        if (waspX < 0) {
+            waspX = screenWidth + 10;
+            waspY = (int) Math.floor(Math.random() * (frameHeight - wasp.getHeight()));
+        }
+        wasp.setX(waspX);
+        wasp.setY(waspY);
+
+        //Miere
+        honeyX -= 20;
+        if (honeyX < 0) {
+            honeyX = screenWidth + 5000;
+            honeyY = (int) Math.floor(Math.random() * (frameHeight - honey.getHeight()));
+        }
+        honey.setX(honeyX);
+        honey.setY(honeyY);
+
+        //Misca albina
+        if (action_flg == true){
+            //Atingi
+            beeY -=20;
+        }else {
+            //Nu atingi
+            beeY += 20;
+        }
+        //Verifica pozitia albinei
+        if (beeY < 0) beeY = 0;
+
+        if (beeY > frameHeight - beeSize){ beeY = frameHeight - beeSize;}
+
+        bee.setY(beeY);
+
+        scoreLabel.setText("Score: " + score);
+    }
+    public void hitCheck(){
+        //Daca centrul florii este in albina, se numara
+
+        //Floare
+        int flowerCenterX = flowerX + flower.getWidth() / 2;
+        int flowerCenterY = flowerY + flower.getHeight() / 2;
+        //0 <=centrulflorii <= latimea albinei
+        //
+        if (0 <= flowerCenterX && flowerCenterX <= beeSize && beeY <= flowerCenterY &&
+                flowerCenterY <= (beeY + beeSize)){
+
+            flowerX = -10;
+            score += 10;
+        }
+
+        //Mierea
+        int honeyCenterX = honeyX + honey.getWidth() / 2;
+        int honeyCenterY = honeyY + honey.getHeight() / 2;
+        if (0 <= honeyCenterX && honeyCenterX <= beeSize && beeY <= honeyCenterY &&
+                honeyCenterY <= (beeY + beeSize)){
+
+            honeyX = -10;
+            score += 30;
+        }
+        int waspCenterX = waspX + wasp.getWidth() / 2;
+        int waspCenterY = waspY + wasp.getHeight() / 2;
+        if (0 <= waspCenterX && waspCenterX <= beeSize && beeY <= waspCenterY &&
+                waspCenterY <= (beeY + beeSize)){
+
+            // Se opreste timpul
+            timer.cancel();
+            timer = null;
+
+            //Afiseaza scorul
+            Intent intent = new Intent(getApplicationContext(),result.class);
+            intent.putExtra("SCORE", score);
+            startActivity(intent);
+
+        }
+    }
+
+
+
+    public boolean onTouchEvent(MotionEvent me){
+
+        if (start_flg == false){
+
+            start_flg = true;
+
+            FrameLayout frame = (FrameLayout) findViewById(R.id.frame);
+            frameHeight = frame.getHeight();
+
+            beeY = (int)bee.getY();
+
+            beeSize = bee.getHeight();
+
+            startLabel.setVisibility(View.GONE);
+
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run () {
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            changePos();
+                        }
+                    });
+                }
+            },0,20);
+
+        }else {
+            if (me.getAction() == MotionEvent.ACTION_DOWN) {
+                action_flg = true;
+        } else if (me.getAction() == MotionEvent.ACTION_UP){
+                action_flg = false;
+
+            }
+        }
+
+        return true;
+
+    }
+}
+
